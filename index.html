@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭资产管理系统</title>
+    <title>家庭资产管理系统 v2.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -14,6 +14,8 @@
             --text-muted: #64748b;
             --primary: #0f172a;
             --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --danger: #ef4444;
             --border-color: #e2e8f0;
             
             /* 资产颜色资产 */
@@ -39,7 +41,7 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -52,6 +54,7 @@
             text-align: center;
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
             margin-bottom: 2rem;
+            position: relative;
         }
 
         .header-panel h1 {
@@ -67,19 +70,59 @@
             font-size: 3rem;
             font-weight: 700;
             letter-spacing: -1px;
+            margin-bottom: 1rem;
         }
 
-        /* 布局网格 */
+        /* 历史记录操作区域 */
+        .history-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: #475569; color: white; }
+        .btn-secondary:hover { background: #334155; }
+
+        .input-month {
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #334155;
+            color: white;
+            outline: none;
+            font-weight: 500;
+        }
+
+        /* 布局网格升级：支持左侧输入，右侧双图表 */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 2rem;
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 992px) {
             .main-grid {
-                grid-template-columns: 1.2fr 1fr;
+                grid-template-columns: 1fr 1.3fr;
             }
+        }
+
+        .right-charts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
         }
 
         /* 卡片通用样式 */
@@ -181,13 +224,15 @@
             position: relative;
             margin: 0 auto;
             width: 100%;
-            max-width: 320px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
+        
+        .pie-size { max-width: 300px; }
+        .line-size { height: 260px; width: 100%; }
 
-        /* 隐藏原生数字箭头的微调 */
+        /* 隐藏原生数字箭头 */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -204,6 +249,12 @@
     <div class="header-panel">
         <h1>家庭净资产总额 / Total Wealth</h1>
         <div class="total-wealth" id="totalWealth">¥0.00</div>
+        
+        <div class="history-actions">
+            <input type="month" id="recordMonth" class="input-month">
+            <button class="btn btn-primary" onclick="saveToHistory()">记录当前快照</button>
+            <button class="btn btn-secondary" style="background:#ef4444;" onclick="clearHistory()">清空历史趋势</button>
+        </div>
     </div>
 
     <div class="main-grid">
@@ -273,20 +324,37 @@
             </div>
         </div>
 
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-            <h2 class="card-title" style="margin-bottom: 2rem;">资产占比分析</h2>
-            <div class="chart-container">
-                <canvas id="assetChart"></canvas>
+        <div class="right-charts">
+            <div class="card">
+                <h2 class="card-title" style="margin-bottom: 1rem;">资产占比分析</h2>
+                <div class="chart-container pie-size">
+                    <canvas id="assetChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title" style="margin-bottom: 1rem;">历史资产走势（月度）</h2>
+                <div class="chart-container line-size">
+                    <canvas id="trendChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    let chartInstance = null;
+    let pieChartInstance = null;
+    let lineChartInstance = null;
+    let historyData = []; // 存储结构: [{month: '2026-01', total: 10000}]
 
     // 页面初始化加载数据
     window.onload = function() {
+        // 设置默认录入月份为当前系统月份
+        const now = new Date();
+        const currentMonthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('recordMonth').value = currentMonthStr;
+
+        // 恢复当前资产数据
         const savedData = localStorage.getItem('family_assets');
         if (savedData) {
             const data = JSON.parse(savedData);
@@ -296,8 +364,19 @@
             document.getElementById('bond').value = data.bond || 0;
             document.getElementById('private').value = data.private || 0;
         }
-        initChart();
-        calculateTotal();
+
+        // 恢复历史趋势数据
+        const savedHistory = localStorage.getItem('family_assets_history');
+        if (savedHistory) {
+            historyData = JSON.parse(savedHistory);
+            // 确保按时间先后排序
+            historyData.sort((a, b) => new Date(a.month) - new Date(b.month));
+        }
+
+        // 初始化所有图表
+        const { values, total } = calculateTotal();
+        initPieChart(values);
+        initLineChart();
     };
 
     // 获取当前所有输入值
@@ -311,71 +390,102 @@
         };
     }
 
-    // 计算总资产并更新数据
+    // 计算总资产并更新顶层文本
     function calculateTotal() {
         const values = getAssetValues();
         const total = values.fund + values.stock + values.cash + values.bond + values.private;
         
-        // 格式化千分位输出
         document.getElementById('totalWealth').innerText = '¥' + total.toLocaleString('zh-CN', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
-
         return { values, total };
     }
 
-    // 核心数据更新逻辑（输入时实时触发）
+    // 实时更新资产数值
     function updateAssets() {
         const { values, total } = calculateTotal();
-        
-        // 自动保存到 localStorage
         localStorage.setItem('family_assets', JSON.stringify(values));
 
-        // 计算两大 Portfolio 的总体数据
         const familyTotal = values.fund + values.stock + values.cash;
         const eduTotal = values.bond + values.private;
 
-        if (chartInstance) {
-            // 更新图表数据 (外环：具体子项占比)
-            chartInstance.data.datasets[0].data = [
-                values.fund, values.stock, values.cash, 
-                values.bond, values.private
-            ];
-            // 更新图表数据 (内环：大类分类占比)
-            chartInstance.data.datasets[1].data = [familyTotal, eduTotal];
-            chartInstance.update();
+        if (pieChartInstance) {
+            pieChartInstance.data.datasets[0].data = [values.fund, values.stock, values.cash, values.bond, values.private];
+            pieChartInstance.data.datasets[1].data = [familyTotal, eduTotal];
+            pieChartInstance.update();
         }
     }
 
-    // 初始化双层环形图
-    function initChart() {
+    // 新增功能：将当前总资产记录到历史数据中
+    function saveToHistory() {
+        const monthInput = document.getElementById('recordMonth').value;
+        if (!monthInput) {
+            alert('请选择有效的月份！');
+            return;
+        }
+
+        const { total } = calculateTotal();
+
+        // 检查该月份是否已存在，存在则更新，不存在则追加
+        const existingIndex = historyData.findIndex(item => item.month === monthInput);
+        if (existingIndex >= 0) {
+            historyData[existingIndex].total = total;
+        } else {
+            historyData.push({ month: monthInput, total: total });
+        }
+
+        // 重新按时间升序排序
+        historyData.sort((a, b) => new Date(a.month) - new Date(b.month));
+
+        // 存入本地存储并刷新折线图
+        localStorage.setItem('family_assets_history', JSON.stringify(historyData));
+        updateLineChart();
+    }
+
+    // 新增功能：清空所有历史数据
+    function clearHistory() {
+        if (confirm('确认清空所有历史资产趋势记录吗？该操作不可恢复。')) {
+            historyData = [];
+            localStorage.removeItem('family_assets_history');
+            updateLineChart();
+        }
+    }
+
+    // 新增功能：更新折线图视图数据
+    function updateLineChart() {
+        if (lineChartInstance) {
+            const labels = historyData.map(item => item.month);
+            const data = historyData.map(item => item.total);
+
+            lineChartInstance.data.labels = labels;
+            lineChartInstance.data.datasets[0].data = data;
+            lineChartInstance.update();
+        }
+    }
+
+    // 初始化占比环形图
+    function initPieChart(values) {
         const ctx = document.getElementById('assetChart').getContext('2d');
-        const { values } = calculateTotal();
-        
         const familyTotal = values.fund + values.stock + values.cash;
         const eduTotal = values.bond + values.private;
 
-        chartInstance = new Chart(ctx, {
+        pieChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                // 外环标签
                 labels: ['基金', '股票', '现金存款', '债券', '私募基金'],
                 datasets: [
                     {
-                        // 外环：各细分项资产比例
                         data: [values.fund, values.stock, values.cash, values.bond, values.private],
                         backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
                         borderWidth: 2,
-                        weight: 2  // 相对厚度比例
+                        weight: 2
                     },
                     {
-                        // 内环：Portfolio 归属大类
                         data: [familyTotal, eduTotal],
-                        backgroundColor: ['#1e293b', '#475569'], // 深色表示家庭，浅色表示教育
+                        backgroundColor: ['#1e293b', '#475569'],
                         borderWidth: 2,
-                        weight: 1,
-                        labels: ['家庭主要资产', '子女教育基金'] // 供参考，内环内部隐藏或通过 tooltip 展现
+                        weight: 1
                     }
                 ]
             },
@@ -386,10 +496,9 @@
                     legend: {
                         position: 'bottom',
                         labels: {
-                            boxWidth: 12,
-                            padding: 15,
-                            font: { size: 12 },
-                            // 过滤掉内环的标签，避免图例混乱
+                            boxWidth: 10,
+                            padding: 12,
+                            font: { size: 11 },
                             filter: function(item, chartData) {
                                 return chartData.labels.indexOf(item.text) > -1;
                             }
@@ -399,7 +508,6 @@
                         callbacks: {
                             label: function(context) {
                                 let label = context.chart.data.labels[context.dataIndex] || '';
-                                // 如果是内环数据集，重写它的 Tooltip 标签
                                 if (context.datasetIndex === 1) {
                                     label = context.dataIndex === 0 ? '家庭主要资产总计' : '子女教育基金总计';
                                 }
@@ -411,7 +519,67 @@
                         }
                     }
                 },
-                cutout: '50%' // 调节中心空白大小
+                cutout: '50%'
+            }
+        });
+    }
+
+    // 新增功能：初始化历史走势折线图
+    function initLineChart() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const labels = historyData.map(item => item.month);
+        const data = historyData.map(item => item.total);
+
+        lineChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '总资产走势',
+                    data: data,
+                    borderColor: '#2563eb', // 灰蓝经典高亮
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)', // 渐变轻阴影
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3, // 让曲线更柔和流畅
+                    pointBackgroundColor: '#2563eb',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // 允许拉伸铺满容器
+                plugins: {
+                    legend: { display: false }, // 无需多余的图例
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` 总资产: ¥${context.raw.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }, // 隐藏竖向网格线线，让画面利落
+                        ticks: { color: '#64748b', font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { color: '#e2e8f0' },
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 11 },
+                            // 简化 Y 轴过长数字的显示
+                            callback: function(value) {
+                                if (value >= 10000) {
+                                    return (value / 10000) + ' 万';
+                                }
+                                return value;
+                            }
+                        }
+                    }
+                }
             }
         });
     }
