@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭资产管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --border-color: #e2e8f0;
+            
+            /* 资产颜色资产 */
+            --color-fund: #3b82f6;
+            --color-stock: #10b981;
+            --color-cash: #f59e0b;
+            --color-bond: #8b5cf6;
+            --color-private: #ec4899;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* 顶部大字报 */
+        .header-panel {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+            margin-bottom: 2rem;
+        }
+
+        .header-panel h1 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .total-wealth {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        /* 布局网格 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .portfolio-tag {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-weight: 500;
+        }
+
+        .tag-family { background: #e0f2fe; color: #0369a1; }
+        .tag-edu { background: #f3e8ff; color: #6b21a8; }
+
+        /* 表单输入组 */
+        .portfolio-section {
+            margin-bottom: 2rem;
+        }
+
+        .portfolio-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .asset-label {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 10px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .asset-input {
+            width: 140px;
+            border: none;
+            background: transparent;
+            text-align: right;
+            padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary);
+            outline: none;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 隐藏原生数字箭头的微调 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-panel">
+        <h1>家庭净资产总额 / Total Wealth</h1>
+        <div class="total-wealth" id="totalWealth">¥0.00</div>
+    </div>
+
+    <div class="main-grid">
+        <div class="card">
+            <h2 class="card-title">资产配置明细</h2>
+            
+            <div class="portfolio-section">
+                <div class="card-title" style="font-size: 1.05rem; margin-bottom: 1rem;">
+                    家庭主要资产 <span class="portfolio-tag tag-family">Portfolio A</span>
+                </div>
+                
+                <div class="input-group">
+                    <div class="asset-label">
+                        <div class="color-indicator" style="background: var(--color-fund);"></div>基金
+                    </div>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">¥</span>
+                        <input type="number" class="asset-input" id="fund" value="0" step="0.01" oninput="updateAssets()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="asset-label">
+                        <div class="color-indicator" style="background: var(--color-stock);"></div>股票
+                    </div>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">¥</span>
+                        <input type="number" class="asset-input" id="stock" value="0" step="0.01" oninput="updateAssets()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="asset-label">
+                        <div class="color-indicator" style="background: var(--color-cash);"></div>现金存款
+                    </div>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">¥</span>
+                        <input type="number" class="asset-input" id="cash" value="0" step="0.01" oninput="updateAssets()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="portfolio-section">
+                <div class="card-title" style="font-size: 1.05rem; margin-bottom: 1rem;">
+                    子女教育基金 <span class="portfolio-tag tag-edu">Portfolio B</span>
+                </div>
+
+                <div class="input-group">
+                    <div class="asset-label">
+                        <div class="color-indicator" style="background: var(--color-bond);"></div>债券
+                    </div>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">¥</span>
+                        <input type="number" class="asset-input" id="bond" value="0" step="0.01" oninput="updateAssets()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="asset-label">
+                        <div class="color-indicator" style="background: var(--color-private);"></div>私募基金
+                    </div>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">¥</span>
+                        <input type="number" class="asset-input" id="private" value="0" step="0.01" oninput="updateAssets()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+            <h2 class="card-title" style="margin-bottom: 2rem;">资产占比分析</h2>
+            <div class="chart-container">
+                <canvas id="assetChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    // 页面初始化加载数据
+    window.onload = function() {
+        const savedData = localStorage.getItem('family_assets');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            document.getElementById('fund').value = data.fund || 0;
+            document.getElementById('stock').value = data.stock || 0;
+            document.getElementById('cash').value = data.cash || 0;
+            document.getElementById('bond').value = data.bond || 0;
+            document.getElementById('private').value = data.private || 0;
+        }
+        initChart();
+        calculateTotal();
+    };
+
+    // 获取当前所有输入值
+    function getAssetValues() {
+        return {
+            fund: parseFloat(document.getElementById('fund').value) || 0,
+            stock: parseFloat(document.getElementById('stock').value) || 0,
+            cash: parseFloat(document.getElementById('cash').value) || 0,
+            bond: parseFloat(document.getElementById('bond').value) || 0,
+            private: parseFloat(document.getElementById('private').value) || 0
+        };
+    }
+
+    // 计算总资产并更新数据
+    function calculateTotal() {
+        const values = getAssetValues();
+        const total = values.fund + values.stock + values.cash + values.bond + values.private;
+        
+        // 格式化千分位输出
+        document.getElementById('totalWealth').innerText = '¥' + total.toLocaleString('zh-CN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        return { values, total };
+    }
+
+    // 核心数据更新逻辑（输入时实时触发）
+    function updateAssets() {
+        const { values, total } = calculateTotal();
+        
+        // 自动保存到 localStorage
+        localStorage.setItem('family_assets', JSON.stringify(values));
+
+        // 计算两大 Portfolio 的总体数据
+        const familyTotal = values.fund + values.stock + values.cash;
+        const eduTotal = values.bond + values.private;
+
+        if (chartInstance) {
+            // 更新图表数据 (外环：具体子项占比)
+            chartInstance.data.datasets[0].data = [
+                values.fund, values.stock, values.cash, 
+                values.bond, values.private
+            ];
+            // 更新图表数据 (内环：大类分类占比)
+            chartInstance.data.datasets[1].data = [familyTotal, eduTotal];
+            chartInstance.update();
+        }
+    }
+
+    // 初始化双层环形图
+    function initChart() {
+        const ctx = document.getElementById('assetChart').getContext('2d');
+        const { values } = calculateTotal();
+        
+        const familyTotal = values.fund + values.stock + values.cash;
+        const eduTotal = values.bond + values.private;
+
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                // 外环标签
+                labels: ['基金', '股票', '现金存款', '债券', '私募基金'],
+                datasets: [
+                    {
+                        // 外环：各细分项资产比例
+                        data: [values.fund, values.stock, values.cash, values.bond, values.private],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
+                        borderWidth: 2,
+                        weight: 2  // 相对厚度比例
+                    },
+                    {
+                        // 内环：Portfolio 归属大类
+                        data: [familyTotal, eduTotal],
+                        backgroundColor: ['#1e293b', '#475569'], // 深色表示家庭，浅色表示教育
+                        borderWidth: 2,
+                        weight: 1,
+                        labels: ['家庭主要资产', '子女教育基金'] // 供参考，内环内部隐藏或通过 tooltip 展现
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            font: { size: 12 },
+                            // 过滤掉内环的标签，避免图例混乱
+                            filter: function(item, chartData) {
+                                return chartData.labels.indexOf(item.text) > -1;
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.chart.data.labels[context.dataIndex] || '';
+                                // 如果是内环数据集，重写它的 Tooltip 标签
+                                if (context.datasetIndex === 1) {
+                                    label = context.dataIndex === 0 ? '家庭主要资产总计' : '子女教育基金总计';
+                                }
+                                const val = context.raw;
+                                const total = context.chart.data.datasets[context.datasetIndex].data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0%';
+                                return ` ${label}: ¥${val.toLocaleString()} (${percentage})`;
+                            }
+                        }
+                    }
+                },
+                cutout: '50%' // 调节中心空白大小
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
