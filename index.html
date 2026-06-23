@@ -3,338 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭资产管理系统 v2.0</title>
+    <title>高级家庭资产管理系统 v3.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #f0f4f8;
+            --bg-color: #f1f5f9;
             --card-bg: #ffffff;
-            --text-main: #1e293b;
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --primary: #0f172a;
+            --primary: #1e293b;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
             --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
             --border-color: #e2e8f0;
-            
-            /* 资产颜色资产 */
-            --color-fund: #3b82f6;
-            --color-stock: #10b981;
-            --color-cash: #f59e0b;
-            --color-bond: #8b5cf6;
-            --color-private: #ec4899;
+
+            /* 资产大类标准配色 */
+            --cls-fund: #3b82f6;       /* 基金 - 蓝色 */
+            --cls-equity: #10b981;     /* 权益 - 绿色 */
+            --cls-fixed: #8b5cf6;      /* 固定收益 - 紫色 */
+            --cls-cash: #f59e0b;       /* 现金 - 橙色 */
+            --cls-other: #64748b;      /* 其他 - 灰色 */
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem 1rem; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 2rem 1rem;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* 顶部大字报 */
+        /* 顶部看板 */
         .header-panel {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
             padding: 2.5rem;
             border-radius: 16px;
-            text-align: center;
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
             margin-bottom: 2rem;
-            position: relative;
         }
-
-        .header-panel h1 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #94a3b8;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+        .header-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            text-align: center;
         }
-
-        .total-wealth {
-            font-size: 3rem;
-            font-weight: 700;
-            letter-spacing: -1px;
-            margin-bottom: 1rem;
+        @media (min-width: 768px) {
+            .header-grid { grid-template-columns: 1.5fr 1fr 1fr; text-align: left; }
+            .kpi-box.right-align { text-align: right; }
         }
+        .kpi-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 0.25rem; }
+        .total-wealth { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; }
+        .return-val { font-size: 1.75rem; font-weight: 600; margin-top: 0.25rem; }
+        .text-up { color: #34d399; }
+        .text-down { color: #f87171; }
 
-        /* 历史记录操作区域 */
-        .history-actions {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            align-items: center;
-        }
+        /* 核心布局 */
+        .main-layout { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 1024px) { .main-layout { grid-template-columns: 1.2fr 1fr; } }
 
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: background 0.2s;
-        }
+        /* 卡片级通用样式 */
+        .card { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem; }
+        .card:last-child { margin-bottom: 0; }
+        .card-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
 
+        /* 按钮与输入控件 */
+        .btn { padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
         .btn-primary { background: var(--accent); color: white; }
         .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary { background: #475569; color: white; }
-        .btn-secondary:hover { background: #334155; }
-
-        .input-month {
-            padding: 0.5rem;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: #334155;
-            color: white;
-            outline: none;
-            font-weight: 500;
-        }
-
-        /* 布局网格升级：支持左侧输入，右侧双图表 */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-
-        @media (min-width: 992px) {
-            .main-grid {
-                grid-template-columns: 1fr 1.3fr;
-            }
-        }
-
-        .right-charts {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-
-        /* 卡片通用样式 */
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .portfolio-tag {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 99px;
-            font-weight: 500;
-        }
-
-        .tag-family { background: #e0f2fe; color: #0369a1; }
-        .tag-edu { background: #f3e8ff; color: #6b21a8; }
-
-        /* 表单输入组 */
-        .portfolio-section {
-            margin-bottom: 2rem;
-        }
-
-        .portfolio-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            background: #f8fafc;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            transition: all 0.2s;
-        }
-
-        .input-group:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .asset-label {
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-
-        .color-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 12px;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .currency-symbol {
-            position: absolute;
-            left: 10px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .asset-input {
-            width: 140px;
-            border: none;
-            background: transparent;
-            text-align: right;
-            padding: 0.5rem 0.5rem 0.5rem 1.5rem;
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--primary);
-            outline: none;
-        }
-
-        /* 图表容器 */
-        .chart-container {
-            position: relative;
-            margin: 0 auto;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        .btn-danger { background: #fef2f2; color: var(--danger); }
+        .btn-danger:hover { background: #fee2e2; }
+        .btn-text-danger { background: transparent; color: var(--danger); padding: 0.25rem; font-size: 0.8rem; }
+        .btn-text-danger:hover { text-decoration: underline; }
         
-        .pie-size { max-width: 300px; }
-        .line-size { height: 260px; width: 100%; }
+        .form-control { padding: 0.4rem 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; outline: none; font-size: 0.9rem; color: var(--primary); }
+        .form-control:focus { border-color: var(--accent); }
 
-        /* 隐藏原生数字箭头 */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
+        /* Portfolio 动态容器 */
+        .portfolio-block { border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; background: #fafafa; }
+        .portfolio-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; }
+        .portfolio-name-input { font-weight: 600; font-size: 1.05rem; border: none; background: transparent; color: var(--primary); width: 60%; }
+        .portfolio-name-input:focus { background: #ffffff; border-bottom: 1px solid var(--accent); }
+
+        /* 资产明细行 */
+        .asset-row { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+        @media (max-width: 568px) { .asset-row { grid-template-columns: 1fr; gap: 0.4rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; } }
+
+        /* 历史曲线控制 */
+        .history-bar { display: flex; flex-wrap: wrap; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 12px; margin-top: 1rem; align-items: center; }
+
+        /* 图表适配 */
+        .chart-box { min-height: 280px; display: flex; justify-content: center; align-items: center; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header-panel">
-        <h1>家庭净资产总额 / Total Wealth</h1>
-        <div class="total-wealth" id="totalWealth">¥0.00</div>
-        
-        <div class="history-actions">
-            <input type="month" id="recordMonth" class="input-month">
-            <button class="btn btn-primary" onclick="saveToHistory()">记录当前快照</button>
-            <button class="btn btn-secondary" style="background:#ef4444;" onclick="clearHistory()">清空历史趋势</button>
+        <div class="header-grid">
+            <div>
+                <div class="kpi-label">家庭资产总净值 (Total Wealth)</div>
+                <div class="total-wealth" id="txtTotalWealth">¥0.00</div>
+            </div>
+            <div>
+                <div class="kpi-label">近1个月收益率 (1M Return)</div>
+                <div class="return-val" id="txtReturn1M">--</div>
+            </div>
+            <div class="kpi-box right-align">
+                <div class="kpi-label">近1年收益率 (1Y Return)</div>
+                <div class="return-val" id="txtReturn1Y">--</div>
+            </div>
         </div>
     </div>
 
-    <div class="main-grid">
-        <div class="card">
-            <h2 class="card-title">资产配置明细</h2>
-            
-            <div class="portfolio-section">
-                <div class="card-title" style="font-size: 1.05rem; margin-bottom: 1rem;">
-                    家庭主要资产 <span class="portfolio-tag tag-family">Portfolio A</span>
+    <div class="main-layout">
+        <div class="left-column">
+            <div class="card">
+                <div class="card-title">
+                    <span>核心资产架构配置</span>
+                    <button class="btn btn-primary" onclick="addPortfolio()">＋ 新增 Portfolio</button>
                 </div>
                 
-                <div class="input-group">
-                    <div class="asset-label">
-                        <div class="color-indicator" style="background: var(--color-fund);"></div>基金
-                    </div>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">¥</span>
-                        <input type="number" class="asset-input" id="fund" value="0" step="0.01" oninput="updateAssets()">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <div class="asset-label">
-                        <div class="color-indicator" style="background: var(--color-stock);"></div>股票
-                    </div>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">¥</span>
-                        <input type="number" class="asset-input" id="stock" value="0" step="0.01" oninput="updateAssets()">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <div class="asset-label">
-                        <div class="color-indicator" style="background: var(--color-cash);"></div>现金存款
-                    </div>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">¥</span>
-                        <input type="number" class="asset-input" id="cash" value="0" step="0.01" oninput="updateAssets()">
-                    </div>
-                </div>
+                <div id="portfolioContainer"></div>
             </div>
 
-            <div class="portfolio-section">
-                <div class="card-title" style="font-size: 1.05rem; margin-bottom: 1rem;">
-                    子女教育基金 <span class="portfolio-tag tag-edu">Portfolio B</span>
-                </div>
-
-                <div class="input-group">
-                    <div class="asset-label">
-                        <div class="color-indicator" style="background: var(--color-bond);"></div>债券
-                    </div>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">¥</span>
-                        <input type="number" class="asset-input" id="bond" value="0" step="0.01" oninput="updateAssets()">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <div class="asset-label">
-                        <div class="color-indicator" style="background: var(--color-private);"></div>私募基金
-                    </div>
-                    <div class="input-wrapper">
-                        <span class="currency-symbol">¥</span>
-                        <input type="number" class="asset-input" id="private" value="0" step="0.01" oninput="updateAssets()">
-                    </div>
+            <div class="card">
+                <div class="card-title">历史资产快照存根</div>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                    请定期录入月末总资产数据，系统将依此全自动追踪计算过去1个月和1年的复合投资收益率。
+                </p>
+                <div class="history-bar">
+                    <label style="font-size:0.9rem; font-weight:500;">选择月份:</label>
+                    <input type="month" id="histMonth" class="form-control">
+                    <label style="font-size:0.9rem; font-weight:500;">历史总资产 (¥):</label>
+                    <input type="number" id="histValue" class="form-control" style="width:140px;" placeholder="金额">
+                    <button class="btn btn-primary" onclick="saveHistoryRow()">记录快照</button>
+                    <button class="btn btn-danger" onclick="clearAllHistory()">清空历史</button>
                 </div>
             </div>
         </div>
 
-        <div class="right-charts">
+        <div class="right-column">
             <div class="card">
-                <h2 class="card-title" style="margin-bottom: 1rem;">资产占比分析</h2>
-                <div class="chart-container pie-size">
-                    <canvas id="assetChart"></canvas>
+                <div class="card-title">全资产类型分布 (按大类)</div>
+                <div class="chart-box">
+                    <canvas id="typeChart"></canvas>
                 </div>
             </div>
-
             <div class="card">
-                <h2 class="card-title" style="margin-bottom: 1rem;">历史资产走势（月度）</h2>
-                <div class="chart-container line-size">
+                <div class="card-title">大类资产历史净值趋势</div>
+                <div class="chart-box" style="height:300px;">
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
@@ -343,247 +160,265 @@
 </div>
 
 <script>
-    let pieChartInstance = null;
-    let lineChartInstance = null;
-    let historyData = []; // 存储结构: [{month: '2026-01', total: 10000}]
-
-    // 页面初始化加载数据
-    window.onload = function() {
-        // 设置默认录入月份为当前系统月份
-        const now = new Date();
-        const currentMonthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-        document.getElementById('recordMonth').value = currentMonthStr;
-
-        // 恢复当前资产数据
-        const savedData = localStorage.getItem('family_assets');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            document.getElementById('fund').value = data.fund || 0;
-            document.getElementById('stock').value = data.stock || 0;
-            document.getElementById('cash').value = data.cash || 0;
-            document.getElementById('bond').value = data.bond || 0;
-            document.getElementById('private').value = data.private || 0;
-        }
-
-        // 恢复历史趋势数据
-        const savedHistory = localStorage.getItem('family_assets_history');
-        if (savedHistory) {
-            historyData = JSON.parse(savedHistory);
-            // 确保按时间先后排序
-            historyData.sort((a, b) => new Date(a.month) - new Date(b.month));
-        }
-
-        // 初始化所有图表
-        const { values, total } = calculateTotal();
-        initPieChart(values);
-        initLineChart();
+    // 核心底层数据结构定义
+    let appState = {
+        portfolios: [
+            {
+                id: "p_1",
+                name: "家庭主要资产",
+                assets: [
+                    { name: "沪深300指数联接", type: "fund", value: 100000 },
+                    { name: "腾讯控股", type: "equity", value: 50000 }
+                ]
+            },
+            {
+                id: "p_2",
+                name: "子女教育基金",
+                assets: [
+                    { name: "东方30", type: "fund", value: 80000 },
+                    { name: "国债2401", type: "fixed", value: 120000 }
+                ]
+            }
+        ],
+        history: [] // 格式：{ month: "2026-05", total: 320000 }
     };
 
-    // 获取当前所有输入值
-    function getAssetValues() {
-        return {
-            fund: parseFloat(document.getElementById('fund').value) || 0,
-            stock: parseFloat(document.getElementById('stock').value) || 0,
-            cash: parseFloat(document.getElementById('cash').value) || 0,
-            bond: parseFloat(document.getElementById('bond').value) || 0,
-            private: parseFloat(document.getElementById('private').value) || 0
-        };
-    }
+    const typeMeta = {
+        fixed: { label: "固定收益", color: "#8b5cf6" },
+        equity: { label: "权益", color: "#10b981" },
+        fund: { label: "基金", color: "#3b82f6" },
+        cash: { label: "现金", color: "#f59e0b" },
+        other: { label: "其他", color: "#64748b" }
+    };
 
-    // 计算总资产并更新顶层文本
-    function calculateTotal() {
-        const values = getAssetValues();
-        const total = values.fund + values.stock + values.cash + values.bond + values.private;
-        
-        document.getElementById('totalWealth').innerText = '¥' + total.toLocaleString('zh-CN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+    let typeChartInstance = null;
+    let trendChartInstance = null;
+
+    window.onload = function() {
+        // 设置快照默认月份
+        const today = new Date();
+        document.getElementById('histMonth').value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+
+        // 读取本地存储
+        const localData = localStorage.getItem('family_wealth_v3_state');
+        if (localData) {
+            try { appState = JSON.parse(localData); } catch(e) { console.error("解析历史缓存失败，转用默认集", e); }
+        }
+
+        renderEditor();
+        calculateAndRefresh();
+    };
+
+    // 渲染配置视图层
+    function renderEditor() {
+        const container = document.getElementById('portfolioContainer');
+        container.innerHTML = '';
+
+        appState.portfolios.forEach((pf, pIndex) => {
+            const block = document.createElement('div');
+            block.className = 'portfolio-block';
+            block.innerHTML = `
+                <div class="portfolio-header">
+                    <input type="text" class="portfolio-name-input" value="${pf.name}" onchange="changePfName(${pIndex}, this.value)" placeholder="未命名组合">
+                    <button class="btn btn-text-danger" onclick="deletePortfolio(${pIndex})">✕ 移除组合</button>
+                </div>
+                <div id="asset_list_${pf.id}"></div>
+                <div style="margin-top:0.8rem; text-align:right;">
+                    <button class="btn btn-primary" style="padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="addAssetRow(${pIndex})">＋ 添加资产项</button>
+                </div>
+            `;
+            container.appendChild(block);
+
+            const listDom = document.getElementById(`asset_list_${pf.id}`);
+            pf.assets.forEach((ast, aIndex) => {
+                const row = document.createElement('div');
+                row.className = 'asset-row';
+
+                let optionsHtml = '';
+                for (let key in typeMeta) {
+                    optionsHtml += `<option value="${key}" ${ast.type === key ? 'selected' : ''}>${typeMeta[key].label}</option>`;
+                }
+
+                row.innerHTML = `
+                    <input type="text" class="form-control" value="${ast.name}" placeholder="资产别名（如:东方30）" onchange="changeAssetField(${pIndex}, ${aIndex}, 'name', this.value)">
+                    <select class="form-control" onchange="changeAssetField(${pIndex}, ${aIndex}, 'type', this.value)">${optionsHtml}</select>
+                    <input type="number" class="form-control" value="${ast.value}" placeholder="当前资产金额" step="0.01" oninput="changeAssetField(${pIndex}, ${aIndex}, 'value', this.value)">
+                    <button class="btn btn-text-danger" onclick="deleteAssetRow(${pIndex}, ${aIndex})">移除</button>
+                `;
+                listDom.appendChild(row);
+            });
         });
-        return { values, total };
     }
 
-    // 实时更新资产数值
-    function updateAssets() {
-        const { values, total } = calculateTotal();
-        localStorage.setItem('family_assets', JSON.stringify(values));
-
-        const familyTotal = values.fund + values.stock + values.cash;
-        const eduTotal = values.bond + values.private;
-
-        if (pieChartInstance) {
-            pieChartInstance.data.datasets[0].data = [values.fund, values.stock, values.cash, values.bond, values.private];
-            pieChartInstance.data.datasets[1].data = [familyTotal, eduTotal];
-            pieChartInstance.update();
+    /* 状态写操作原子函数 */
+    function addPortfolio() {
+        appState.portfolios.push({ id: 'p_' + Date.now(), name: '自定义 Portfolio', assets: [] });
+        saveAndSync();
+    }
+    function deletePortfolio(pIndex) {
+        if(confirm(`确定删除该组合及内部所有资产项吗？`)) { appState.portfolios.splice(pIndex, 1); saveAndSync(); }
+    }
+    function changePfName(pIndex, val) { appState.portfolios[pIndex].name = val; saveAndSync(false); }
+    function addAssetRow(pIndex) { appState.portfolios[pIndex].assets.push({ name: '', type: 'fund', value: 0 }); saveAndSync(); }
+    function deleteAssetRow(pIndex, aIndex) { appState.portfolios[pIndex].assets.splice(aIndex, 1); saveAndSync(); }
+    function changeAssetField(pIndex, aIndex, field, val) {
+        if (field === 'value') {
+            appState.portfolios[pIndex].assets[aIndex][field] = parseFloat(val) || 0;
+            calculateAndRefresh(); // 金额变动无需全量重画DOM，仅刷新图表看板
+            localStorage.setItem('family_wealth_v3_state', JSON.stringify(appState));
+        } else {
+            appState.portfolios[pIndex].assets[aIndex][field] = val;
+            saveAndSync(false);
         }
     }
 
-    // 新增功能：将当前总资产记录到历史数据中
-    function saveToHistory() {
-        const monthInput = document.getElementById('recordMonth').value;
-        if (!monthInput) {
-            alert('请选择有效的月份！');
+    function saveAndSync(redraw = true) {
+        localStorage.setItem('family_wealth_v3_state', JSON.stringify(appState));
+        if(redraw) renderEditor();
+        calculateAndRefresh();
+    }
+
+    /* 数据计算及可视化桥接核心 */
+    function calculateAndRefresh() {
+        let currentTotal = 0;
+        let typeDistribution = { fixed: 0, equity: 0, fund: 0, cash: 0, other: 0 };
+
+        appState.portfolios.forEach(pf => {
+            pf.assets.forEach(ast => {
+                const v = parseFloat(ast.value) || 0;
+                currentTotal += v;
+                if (typeDistribution[ast.type] !== undefined) typeDistribution[ast.type] += v;
+            });
+        });
+
+        document.getElementById('txtTotalWealth').innerText = '¥' + currentTotal.toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+
+        updateReturns(currentTotal);
+        refreshPieChart(typeDistribution);
+        refreshTrendChart();
+    }
+
+    /* 复合投资收益率计算层 */
+    function updateReturns(currentTotal) {
+        if (!appState.history || appState.history.length === 0) {
+            document.getElementById('txtReturn1M').innerText = '--';
+            document.getElementById('txtReturn1Y').innerText = '--';
             return;
         }
 
-        const { total } = calculateTotal();
+        const sortedHist = [...appState.history].sort((a,b) => new Date(a.month) - new Date(b.month));
+        const today = new Date();
 
-        // 检查该月份是否已存在，存在则更新，不存在则追加
-        const existingIndex = historyData.findIndex(item => item.month === monthInput);
-        if (existingIndex >= 0) {
-            historyData[existingIndex].total = total;
+        // 辅助找回指定跨度基期总资产函数
+        function getTargetTotal(monthsAgo) {
+            const d = new Date(today.getFullYear(), today.getMonth() - monthsAgo, 1);
+            const targetMonthStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            const match = sortedHist.find(h => h.month === targetMonthStr);
+            return match ? match.total : null;
+        }
+
+        const base1M = getTargetTotal(1);
+        if (base1M && base1M > 0) {
+            const r1M = ((currentTotal - base1M) / base1M) * 100;
+            renderReturnTxt('txtReturn1M', r1M);
+        } else { document.getElementById('txtReturn1M').innerText = '暂无基期'; document.getElementById('txtReturn1M').className='return-val'; }
+
+        const base1Y = getTargetTotal(12);
+        if (base1Y && base1Y > 0) {
+            const r1Y = ((currentTotal - base1Y) / base1Y) * 100;
+            renderReturnTxt('txtReturn1Y', r1Y);
+        } else { document.getElementById('txtReturn1Y').innerText = '暂无基期'; document.getElementById('txtReturn1Y').className='return-val'; }
+    }
+
+    function renderReturnTxt(domId, rate) {
+        const dom = document.getElementById(domId);
+        const sign = rate >= 0 ? '+' : '';
+        dom.innerText = sign + rate.toFixed(2) + '%';
+        dom.className = 'return-val ' + (rate >= 0 ? 'text-up' : 'text-down');
+    }
+
+    /* 历史快照管理 */
+    function saveHistoryRow() {
+        const m = document.getElementById('histMonth').value;
+        const v = parseFloat(document.getElementById('histValue').value) || 0;
+        if(!m || v <= 0) { alert("请输入有效的月份和正确的历史资产金额！"); return; }
+
+        const idx = appState.history.findIndex(h => h.month === m);
+        if(idx >= 0) appState.history[idx].total = v;
+        else appState.history.push({ month: m, total: v });
+
+        appState.history.sort((a,b) => new Date(a.month) - new Date(b.month));
+        localStorage.setItem('family_wealth_v3_state', JSON.stringify(appState));
+        calculateAndRefresh();
+        document.getElementById('histValue').value = '';
+    }
+
+    function clearAllHistory() {
+        if(confirm("确定彻底清空所有历史月份的总资产备份存根吗？")) {
+            appState.history = [];
+            localStorage.setItem('family_wealth_v3_state', JSON.stringify(appState));
+            calculateAndRefresh();
+        }
+    }
+
+    /* Chart.js 图表渲染引擎 */
+    function refreshPieChart(dist) {
+        const ctx = document.getElementById('typeChart').getContext('2d');
+        const labels = []; const data = []; const colors = [];
+        
+        for (let key in typeMeta) {
+            if(dist[key] > 0) {
+                labels.push(typeMeta[key].label);
+                data.push(dist[key]);
+                colors.push(typeMeta[key].color);
+            }
+        }
+
+        if(typeChartInstance) {
+            typeChartInstance.data.labels = labels;
+            typeChartInstance.data.datasets[0].data = data;
+            typeChartInstance.data.datasets[0].backgroundColor = colors;
+            typeChartInstance.update();
         } else {
-            historyData.push({ month: monthInput, total: total });
-        }
-
-        // 重新按时间升序排序
-        historyData.sort((a, b) => new Date(a.month) - new Date(b.month));
-
-        // 存入本地存储并刷新折线图
-        localStorage.setItem('family_assets_history', JSON.stringify(historyData));
-        updateLineChart();
-    }
-
-    // 新增功能：清空所有历史数据
-    function clearHistory() {
-        if (confirm('确认清空所有历史资产趋势记录吗？该操作不可恢复。')) {
-            historyData = [];
-            localStorage.removeItem('family_assets_history');
-            updateLineChart();
-        }
-    }
-
-    // 新增功能：更新折线图视图数据
-    function updateLineChart() {
-        if (lineChartInstance) {
-            const labels = historyData.map(item => item.month);
-            const data = historyData.map(item => item.total);
-
-            lineChartInstance.data.labels = labels;
-            lineChartInstance.data.datasets[0].data = data;
-            lineChartInstance.update();
-        }
-    }
-
-    // 初始化占比环形图
-    function initPieChart(values) {
-        const ctx = document.getElementById('assetChart').getContext('2d');
-        const familyTotal = values.fund + values.stock + values.cash;
-        const eduTotal = values.bond + values.private;
-
-        pieChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['基金', '股票', '现金存款', '债券', '私募基金'],
-                datasets: [
-                    {
-                        data: [values.fund, values.stock, values.cash, values.bond, values.private],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
-                        borderWidth: 2,
-                        weight: 2
-                    },
-                    {
-                        data: [familyTotal, eduTotal],
-                        backgroundColor: ['#1e293b', '#475569'],
-                        borderWidth: 2,
-                        weight: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 10,
-                            padding: 12,
-                            font: { size: 11 },
-                            filter: function(item, chartData) {
-                                return chartData.labels.indexOf(item.text) > -1;
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.chart.data.labels[context.dataIndex] || '';
-                                if (context.datasetIndex === 1) {
-                                    label = context.dataIndex === 0 ? '家庭主要资产总计' : '子女教育基金总计';
-                                }
-                                const val = context.raw;
-                                const total = context.chart.data.datasets[context.datasetIndex].data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0%';
-                                return ` ${label}: ¥${val.toLocaleString()} (${percentage})`;
-                            }
-                        }
-                    }
+            typeChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }]
                 },
-                cutout: '50%'
-            }
-        });
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
     }
 
-    // 新增功能：初始化历史走势折线图
-    function initLineChart() {
+    function refreshTrendChart() {
         const ctx = document.getElementById('trendChart').getContext('2d');
-        const labels = historyData.map(item => item.month);
-        const data = historyData.map(item => item.total);
+        const sortedHist = [...appState.history].sort((a,b) => new Date(a.month) - new Date(b.month));
+        const labels = sortedHist.map(h => h.month);
+        const data = sortedHist.map(h => h.total);
 
-        lineChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: '总资产走势',
-                    data: data,
-                    borderColor: '#2563eb', // 灰蓝经典高亮
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)', // 渐变轻阴影
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.3, // 让曲线更柔和流畅
-                    pointBackgroundColor: '#2563eb',
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, // 允许拉伸铺满容器
-                plugins: {
-                    legend: { display: false }, // 无需多余的图例
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return ` 总资产: ¥${context.raw.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
-                            }
-                        }
-                    }
+        if(trendChartInstance) {
+            trendChartInstance.data.labels = labels;
+            trendChartInstance.data.datasets[0].data = data;
+            trendChartInstance.update();
+        } else {
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '资产规模走势', data: data, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.05)',
+                        borderWidth: 2, fill: true, tension: 0.2, pointRadius: 3
+                    }]
                 },
-                scales: {
-                    x: {
-                        grid: { display: false }, // 隐藏竖向网格线线，让画面利落
-                        ticks: { color: '#64748b', font: { size: 11 } }
-                    },
-                    y: {
-                        grid: { color: '#e2e8f0' },
-                        ticks: {
-                            color: '#64748b',
-                            font: { size: 11 },
-                            // 简化 Y 轴过长数字的显示
-                            callback: function(value) {
-                                if (value >= 10000) {
-                                    return (value / 10000) + ' 万';
-                                }
-                                return value;
-                            }
-                        }
-                    }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { callback: v => v >= 10000 ? (v/10000)+'万' : v } } }
                 }
-            }
-        });
+            });
+        }
     }
 </script>
-
 </body>
 </html>
