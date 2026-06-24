@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高级流水驱动家庭资产管理系统 v5.2 (修复版)</title>
+    <title>高级流水驱动家庭资产管理系统 v5.5 (基准本金校准版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -24,7 +24,6 @@
         body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem 1rem; min-height: 100vh; }
         .container { max-width: 1500px; margin: 0 auto; }
 
-        /* 看板顶栏 */
         .header-panel {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
@@ -46,7 +45,6 @@
         .text-up { color: #34d399 !important; }
         .text-down { color: #f87171 !important; }
 
-        /* 主布局 */
         .main-layout { display: grid; grid-template-columns: 1fr; gap: 2rem; }
         @media (min-width: 1200px) { .main-layout { grid-template-columns: 1.4fr 1fr; } }
 
@@ -63,16 +61,22 @@
         .btn-danger { background: #fef2f2; color: var(--danger); }
         .btn-danger:hover { background: #fee2e2; }
         .btn-secondary { background: #e2e8f0; color: var(--primary); }
-        .btn-secondary:hover { background: #cbd5e1; }
         
         .form-control { padding: 0.4rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; outline: none; font-size: 0.85rem; color: var(--primary); width: 100%; }
 
         .portfolio-block { border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; background: #fafafa; }
-        .portfolio-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; }
-        .portfolio-title-group { display: flex; align-items: center; gap: 0.75rem; width: 75%; }
-        .portfolio-name-input { font-weight: 600; font-size: 1.05rem; border: none; background: transparent; color: var(--primary); width: 45%; }
+        .portfolio-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 1rem; }
+        .portfolio-title-group { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 300px; }
+        .portfolio-name-input { font-weight: 600; font-size: 1.05rem; border: none; background: transparent; color: var(--primary); width: 150px; }
         .portfolio-name-input:focus { background: #ffffff; border-bottom: 1px solid var(--accent); outline: none; }
-        .portfolio-yield { font-size: 0.85rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; background: #e2e8f0; color: var(--text-muted); }
+        .portfolio-yield { font-size: 0.9rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px; background: #e2e8f0; color: var(--text-muted); }
+
+        /* 基准本金输入控制 */
+        .base-cost-box { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .base-cost-input { width: 110px; padding: 0.2rem 0.4rem; border: 1px solid var(--border-color); border-radius: 4px; font-weight: 600; text-align: right; }
+
+        .pf-metrics-subbar { display: flex; gap: 1.5rem; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-main); font-weight: 500; flex-wrap: wrap; }
+        .metric-item span { font-weight: 700; margin-left: 2px; }
 
         .grid-header { display: grid; gap: 0.5rem; padding: 0 0.5rem 0.5rem 0.5rem; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-align: center; }
         .grid-row { display: grid; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; background: #fff; padding: 0.4rem; border-radius: 8px; border: 1px solid #f1f5f9; }
@@ -162,31 +166,18 @@
 </div>
 
 <script>
-    // 默认初始数据（仅在用户浏览器无任何缓存时生效）
-    const defaultState = {
+    let appState = {
         currentView: "hold",
-        portfolios: [
-            {
-                id: "p_1",
-                name: "长线财富组合",
-                transactions: [
-                    { date: "2024-05-10", assetName: "基金A", type: "fund", amount: 200000, isClearance: false },
-                    { date: "2025-06-15", assetName: "基金A", type: "fund", amount: -150000, isClearance: true },
-                    { date: "2026-02-10", assetName: "基金B", type: "fund", amount: 150000, isClearance: false }
-                ],
-                marketPrices: { "基金A": 0, "基金B": 150000 }
-            }
-        ],
+        portfolios: [],
         history: []
     };
 
-    let appState = defaultState;
     const typeMeta = {
-        fixed: { label: "固定收益", color: "#8b5cf6" },
-        equity: { label: "权益", color: "#10b981" },
-        fund: { label: "基金", color: "#3b82f6" },
-        cash: { label: "现金", color: "#f59e0b" },
-        other: { label: "其他", color: "#64748b" }
+        fund: { label: "基金", color: "#3b82f6" },     
+        equity: { label: "权益", color: "#10b981" },   
+        fixed: { label: "固定收益", color: "#8b5cf6" }, 
+        cash: { label: "现金", color: "#f59e0b" },     
+        other: { label: "其他", color: "#64748b" }     
     };
 
     let typeChartInstance = null;
@@ -196,14 +187,9 @@
         const today = new Date();
         document.getElementById('histMonth').value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
         
-        // 严格本地缓存优先策略
-        const localData = localStorage.getItem('family_wealth_ledger_v5_2');
+        const localData = localStorage.getItem('family_wealth_ledger_v5_5') || localStorage.getItem('family_wealth_ledger_v5_4') || localStorage.getItem('family_wealth_ledger_v5_3');
         if (localData) {
-            try { 
-                appState = JSON.parse(localData); 
-            } catch(e) { 
-                console.error("读取缓存失败，启用默认模板", e); 
-            }
+            try { appState = JSON.parse(localData); } catch(e) { console.error(e); }
         }
         switchView(appState.currentView || "hold");
     };
@@ -221,6 +207,9 @@
         container.innerHTML = '';
 
         appState.portfolios.forEach((pf, pIndex) => {
+            // 确保有初始本金字段，默认设为 500W 以对齐你的真实场景
+            if (pf.customBaseCost === undefined) pf.customBaseCost = 5000000;
+
             const derivation = deriveAssetSummary(pf);
             const block = document.createElement('div');
             block.className = 'portfolio-block';
@@ -229,16 +218,26 @@
                 <div class="portfolio-header">
                     <div class="portfolio-title-group">
                         <input type="text" class="portfolio-name-input" value="${pf.name}" onchange="changePfName(${pIndex}, this.value)">
-                        <span class="portfolio-yield" id="yield_pf_${pf.id}">综合内部回报: --</span>
+                        <span class="portfolio-yield" id="yield_pf_${pf.id}">内部总回报: --</span>
                     </div>
-                    <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size:0.75rem;" onclick="deletePortfolio(${pIndex})">✕ 销毁组合</button>
+                    <div class="base-cost-box">
+                        <span>🛠️ 基准初始本金: ¥</span>
+                        <input type="number" class="base-cost-input" value="${pf.customBaseCost}" 
+                            oninput="changeCustomBaseCost(${pIndex}, this.value)">
+                    </div>
+                    <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size:0.75rem;" onclick="deletePortfolio(${pIndex})">✕ 销毁</button>
+                </div>
+                <div class="pf-metrics-subbar" id="metrics_bar_${pf.id}">
+                    <div class="metric-item">输入基准本金: <span id="m_active_cost_${pf.id}">¥0</span></div>
+                    <div class="metric-item">当前账面总市值: <span id="m_total_market_${pf.id}">¥0</span></div>
+                    <div class="metric-item">投资净增值盈亏: <span id="m_true_gain_${pf.id}">¥0</span></div>
                 </div>
             `;
 
             if (appState.currentView === 'hold') {
                 block.innerHTML = headerHtml + `
                     <div class="grid-header hold-template">
-                        <div>资产标的名称</div><div>大类</div><div class="text-right">累计净投入成本</div><div class="text-right">当前账面市值</div><div>持仓/历史回报</div><div class="text-center">状态</div>
+                        <div>资产标的名称</div><div>大类</div><div class="text-right">账面沉淀成本</div><div class="text-right">当前账面市值</div><div>持仓/历史回报</div><div class="text-center">状态</div>
                     </div>
                     <div id="body_pf_${pf.id}"></div>
                 `;
@@ -324,83 +323,96 @@
 
     function deriveAssetSummary(pf) {
         let assetMap = {};
-        let netExternalCashInflow = 0;
-
         pf.transactions.forEach(tx => {
             if (!assetMap[tx.assetName]) {
                 assetMap[tx.assetName] = { name: tx.assetName, type: tx.type, totalBuy: 0, totalSell: 0, cost: 0, forcedCleared: false };
             }
-            
             const obj = assetMap[tx.assetName];
-            if (tx.amount >= 0) {
-                obj.totalBuy += tx.amount;
-                obj.cost += tx.amount;
-                netExternalCashInflow += tx.amount;
-            } else {
-                const absSell = Math.abs(tx.amount);
-                obj.totalSell += absSell;
-                obj.cost -= absSell;
-                netExternalCashInflow -= absSell;
-                if (tx.isClearance) obj.forcedCleared = true;
-            }
+            if (tx.amount >= 0) { obj.totalBuy += tx.amount; obj.cost += tx.amount; } 
+            else { const absSell = Math.abs(tx.amount); obj.totalSell += absSell; obj.cost -= absSell; if (tx.isClearance) obj.forcedCleared = true; }
         });
 
         let assetList = [];
-        let totalCurrentMarketValue = 0;
+        let activeTotalMarketValue = 0; 
 
         for (let key in assetMap) {
             const item = assetMap[key];
             if (item.forcedCleared || item.cost <= 0) {
-                item.status = "已结清清盘";
-                item.cost = 0;
-                pf.marketPrices[key] = 0;
+                item.status = "已结清清盘"; item.cost = 0; pf.marketPrices[key] = 0;
             } else {
                 item.status = "活跃持仓";
-                const price = pf.marketPrices[key] !== undefined ? pf.marketPrices[key] : item.cost;
-                totalCurrentMarketValue += price;
+                const currentPrice = pf.marketPrices[key] !== undefined ? pf.marketPrices[key] : item.cost;
+                activeTotalMarketValue += currentPrice;
             }
             assetList.push(item);
         }
 
-        let portfolioYieldTxt = '--';
-        if (netExternalCashInflow > 0) {
-            const pfRate = ((totalCurrentMarketValue - netExternalCashInflow) / netExternalCashInflow) * 100;
-            portfolioYieldTxt = `内部总回报: ${pfRate >= 0 ? '+' : ''}${pfRate.toFixed(1)}%`;
-        }
+        // 核心数学修正：根据你指定的初始实际本金计算总回报
+        const baseCost = pf.customBaseCost || 5000000;
+        const trueTotalGain = activeTotalMarketValue - baseCost;
+        const trueRate = (trueTotalGain / baseCost) * 100;
+        const portfolioYieldTxt = `内部总回报: ${trueRate >= 0 ? '+' : ''}${trueRate.toFixed(1)}%`;
 
-        return { assetList, totalCurrentMarketValue, netExternalCashInflow, portfolioYieldTxt };
+        return { 
+            assetList, 
+            totalCurrentMarketValue: activeTotalMarketValue, 
+            portfolioYieldTxt,
+            metrics: {
+                activeCost: baseCost,
+                totalMarket: activeTotalMarketValue,
+                trueGain: trueTotalGain
+            }
+        };
     }
 
-    function toggleClearanceCheckbox(pIndex) {
+    function changeCustomBaseCost(pIndex, val) {
         const pf = appState.portfolios[pIndex];
-        const am = parseFloat(document.getElementById(`new_amt_${pf.id}`).value) || 0;
-        const chk = document.getElementById(`new_clear_${pf.id}`);
-        if (chk) {
-            if (am < 0) { chk.disabled = false; } 
-            else { chk.disabled = true; chk.checked = false; }
-        }
+        pf.customBaseCost = parseFloat(val) || 0;
+        localStorage.setItem('family_wealth_ledger_v5_5', JSON.stringify(appState));
+        
+        const derivation = deriveAssetSummary(pf);
+        updateMetricsDisplayBar(pf.id, derivation.metrics);
+        calculateAndRefresh(false);
     }
 
     function changeMarketPrice(pIndex, assetName, val) {
         const pf = appState.portfolios[pIndex];
-        const numVal = parseFloat(val) || 0;
-        pf.marketPrices[assetName] = numVal;
+        pf.marketPrices[assetName] = parseFloat(val) || 0;
+        localStorage.setItem('family_wealth_ledger_v5_5', JSON.stringify(appState));
         
-        localStorage.setItem('family_wealth_ledger_v5_2', JSON.stringify(appState));
-        
-        // 关键性能优化：精准定位单行个股的收益率节点进行局部渲染，不重绘 DOM，保证输入极其丝滑不退格
         const derivation = deriveAssetSummary(pf);
         const ast = derivation.assetList.find(a => a.name === assetName);
         if (ast && ast.status === '活跃持仓' && ast.cost > 0) {
-            const r = ((numVal - ast.cost) / ast.cost) * 100;
+            const r = ((pf.marketPrices[assetName] - ast.cost) / ast.cost) * 100;
             const targetNode = document.getElementById(`yield_node_${pf.id}_${assetName}`);
             if (targetNode) {
                 targetNode.innerText = (r >= 0 ? '+' : '') + r.toFixed(1) + '%';
                 targetNode.className = r >= 0 ? 'row-yield text-center text-up' : 'row-yield text-center text-down';
             }
         }
-        // 刷新宏观看板和图表
-        calculateAndRefresh();
+        
+        updateMetricsDisplayBar(pf.id, derivation.metrics);
+        calculateAndRefresh(false); 
+    }
+
+    function updateMetricsDisplayBar(pfId, metrics) {
+        const domAC = document.getElementById(`m_active_cost_${pfId}`);
+        const domTM = document.getElementById(`m_total_market_${pfId}`);
+        const domTG = document.getElementById(`m_true_gain_${pfId}`);
+
+        if (domAC) domAC.innerText = '¥' + metrics.activeCost.toLocaleString();
+        if (domTM) domTM.innerText = '¥' + metrics.totalMarket.toLocaleString();
+        if (domTG) {
+            domTG.innerText = (metrics.trueGain >= 0 ? '+¥' : '-¥') + Math.abs(metrics.trueGain).toLocaleString();
+            domTG.className = metrics.trueGain >= 0 ? 'text-up' : 'text-down';
+        }
+    }
+
+    function toggleClearanceCheckbox(pIndex) {
+        const pf = appState.portfolios[pIndex];
+        const am = parseFloat(document.getElementById(`new_amt_${pf.id}`).value) || 0;
+        const chk = document.getElementById(`new_clear_${pf.id}`);
+        if (chk) { chk.disabled = am >= 0; if (am >= 0) chk.checked = false; }
     }
 
     function submitNewTx(pIndex) {
@@ -412,14 +424,12 @@
         const isCl = document.getElementById(`new_clear_${pf.id}`).checked;
 
         if (!dt || !nm || am === 0) { alert("要素不全！"); return; }
-
         pf.transactions.push({ date: dt, assetName: nm, type: tp, amount: am, isClearance: isCl });
         if (am > 0 && !pf.marketPrices[nm]) pf.marketPrices[nm] = am;
         pf.transactions.sort((a,b) => new Date(a.date) - new Date(b.date));
         saveAndSync();
     }
 
-    // 关键修复：补全了删除流水逻辑
     function deleteTxRow(pIndex, tIndex) {
         if (confirm("确定要删除这条原始记账流水吗？这将重新计算所有推导数据。")) {
             appState.portfolios[pIndex].transactions.splice(tIndex, 1);
@@ -427,14 +437,14 @@
         }
     }
 
-    function addPortfolio() { appState.portfolios.push({ id: 'p_' + Date.now(), name: '自定义 Portfolio', transactions: [], marketPrices: {} }); saveAndSync(); }
+    function addPortfolio() { appState.portfolios.push({ id: 'p_' + Date.now(), name: '自定义 Portfolio', transactions: [], marketPrices: {}, customBaseCost: 5000000 }); saveAndSync(); }
     function deletePortfolio(pIndex) { if (confirm("确定销毁吗？")) { appState.portfolios.splice(pIndex, 1); saveAndSync(); } }
     function changePfName(pIndex, val) { appState.portfolios[pIndex].name = val; saveAndSync(false); }
-    function saveAndSync(redraw = true) { localStorage.setItem('family_wealth_ledger_v5_2', JSON.stringify(appState)); if (redraw) renderCoreLayout(); calculateAndRefresh(); }
+    function saveAndSync(redraw = true) { localStorage.setItem('family_wealth_ledger_v5_5', JSON.stringify(appState)); if (redraw) renderCoreLayout(); calculateAndRefresh(); }
 
-    function calculateAndRefresh() {
+    function calculateAndRefresh(updateMetricsBar = true) {
         let globalTotalWealth = 0;
-        let typeDistribution = { fixed: 0, equity: 0, fund: 0, cash: 0, other: 0 };
+        let typeDistribution = { fund: 0, equity: 0, fixed: 0, cash: 0, other: 0 };
 
         appState.portfolios.forEach(pf => {
             const derived = deriveAssetSummary(pf);
@@ -447,6 +457,8 @@
                 else if (derived.portfolioYieldTxt.includes('-')) yieldPfDom.className = 'portfolio-yield text-down';
                 else yieldPfDom.className = 'portfolio-yield';
             }
+
+            if (updateMetricsBar) updateMetricsDisplayBar(pf.id, derived.metrics);
 
             derived.assetList.forEach(ast => {
                 if (ast.status === '活跃持仓') {
@@ -462,7 +474,6 @@
         refreshTrendChart();
     }
 
-    // 安全数据双向迁移核心
     function exportDataBackup() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
         const downloadAnchor = document.createElement('a');
@@ -484,19 +495,23 @@
                     appState = importedState;
                     saveAndSync(true);
                     alert("🎉 历史资产流水数据已成功完美还原！");
-                } else {
-                    alert("非法备份文件，格式不匹配！");
-                }
-            } catch(err) {
-                alert("读取文件失败，请确保导入的是合规的 JSON 备份文件。");
-            }
+                } else { alert("非法备份文件，格式不匹配！"); }
+            } catch(err) { alert("读取文件失败。"); }
         };
         reader.readAsText(file);
-        input.value = ''; // 清空选择器
+        input.value = '';
+    }
+
+    function refreshPieChart(dist) {
+        const ctx = document.getElementById('typeChart').getContext('2d');
+        const labels = []; const data = []; const colors = [];
+        for (let key in typeMeta) { if (dist[key] > 0) { labels.push(typeMeta[key].label); data.push(dist[key]); colors.push(typeMeta[key].color); } }
+        if (typeChartInstance) { typeChartInstance.data.labels = labels; typeChartInstance.data.datasets[0].data = data; typeChartInstance.data.datasets[0].backgroundColor = colors; typeChartInstance.update(); } 
+        else { typeChartInstance = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }], labels: labels }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } } } }); }
     }
 
     function updateMacroTimelineReturns(globalTotalWealth) {
-        if (!appState.history || appState.history.length === 0) { document.getElementById('txtReturn1M').innerText = '--'; document.getElementById('txtReturn1Y').innerText = '--'; return; }
+        if (!appState.history || appState.history.length === 0) return;
         const sortedHist = [...appState.history].sort((a,b) => new Date(a.month) - new Date(b.month));
         const today = new Date();
         function getTargetTotal(monthsAgo) {
@@ -506,10 +521,8 @@
         }
         const base1M = getTargetTotal(1);
         if (base1M && base1M > 0) renderReturnTxt('txtReturn1M', ((globalTotalWealth - base1M) / base1M) * 100);
-        else document.getElementById('txtReturn1M').innerText = '暂无基期';
         const base1Y = getTargetTotal(12);
         if (base1Y && base1Y > 0) renderReturnTxt('txtReturn1Y', ((globalTotalWealth - base1Y) / base1Y) * 100);
-        else document.getElementById('txtReturn1Y').innerText = '暂无基期';
     }
 
     function renderReturnTxt(domId, rate) {
@@ -526,15 +539,6 @@
         saveAndSync(false);
     }
     function clearAllHistory() { if (confirm("确认清空吗？")) { appState.history = []; saveAndSync(false); } }
-
-    function refreshPieChart(dist) {
-        const ctx = document.getElementById('typeChart').getContext('2d');
-        const labels = []; const data = []; const colors = [];
-        for (let key in typeMeta) { if (dist[key] > 0) { labels.push(typeMeta[key].label); data.push(dist[key]); colors.push(typeMeta[key].color); } }
-        if (typeChartInstance) { typeChartInstance.data.labels = labels; typeChartInstance.data.datasets[0].data = data; typeChartInstance.update(); } 
-        else { typeChartInstance = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }], labels: labels }, options: { responsive: true, maintainAspectRatio: false } }); }
-    }
-
     function refreshTrendChart() {
         const ctx = document.getElementById('trendChart').getContext('2d');
         const sortedHist = [...appState.history].sort((a,b) => new Date(a.month) - new Date(b.month));
